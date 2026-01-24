@@ -1,0 +1,138 @@
+// ============================================================================
+//  Instruction Memory Scenarios
+//  Keep ONE block of instructions uncommented at a time to focus on that type.
+//  Comment all instructions (add "//" in front) in the other blocks.
+// ============================================================================
+
+// ===== I-TYPE DEMO =====
+// Simple immediate arithmetic and logical operations
+// addi x1, x0, 5      # x1 = 5
+//00000000010100000000000010010011
+// xori x2, x1, 3      # x2 = 5 ^ 3 = 6
+//00000000001100001100000100010011
+// slli x3, x1, 2      # x3 = 5 << 2 = 20
+//00000000001000001001000110010011
+
+// ===== R-TYPE DEMO =====
+// Uncomment this block (and comment the others) to exercise pure register ops.
+// addi x1, x0, 9      # prepare source register
+//00000000100100000000000010010011
+// addi x2, x0, 4      # prepare source register
+//00000000010000000000000100010011
+// add  x3, x1, x2     # x3 = 9 + 4 = 13
+//00000000001000001000000110110011
+// sub  x4, x1, x2     # x4 = 9 - 4 = 5
+//01000000001000001000001000110011
+// mod x3, x1, x2     # x3 = 9 % 4 = 1
+//00000010001000001101000110110011
+
+
+// ===== S-TYPE DEMO =====
+// Uncomment this block (and comment the others) to verify store behaviour.
+// addi x1, x0, 16     # base address = 16
+//00000001000000000000000010010011
+// addi x2, x0, 42     # data value = 42
+//00000010101000000000000100010011
+// sw   x2, 0(x1)      # store word 42 at address 16
+//00000000001000001010000000100011
+// lw   x5, 0(x1)      # load word back into x5 (should be 42)
+//00000000000000001010001010000011
+
+// ===== B/J-TYPE DEMO =====
+// addi x1, x0, 10   # x1 = 10
+//00000000101000000000000010010011
+// addi x2, x0, 10   # x2 = 10
+//00000000101000000000000100010011
+// beq x1, x2, 8     # Taken. Skip next instruction.
+//00000000001000001000010001100011
+// addi x4, x0, 99   # x4 = 99 (Skipped)
+//00000110001100000000001000010011
+// addi x5, x0, 5    # x5 = 5 (Target)
+//00000000010100000000001010010011
+// bne x1, x2, 8     # Not Taken.
+//00000000001000001001010001100011
+// addi x6, x0, 6    # x6 = 6 (Executed)
+//00000000011000000000001100010011
+// jal x7, 8         # Jump forward 8. x7 = PC+4
+//00000000100000000000001111101111
+// addi x8, x0, 88   # x8 = 88 (Skipped)
+//00000101100000000000010000010011
+// addi x9, x0, 9    # x9 = 9 (Target)
+//00000000100100000000001001001011
+// addi x10, x0, 52  # x10 = 52 (Target for JALR)
+//00000011010000000000001010010011
+// jalr x11, 0(x10)  # Jump to 52. x11 = PC+4
+//00000000000001010000010111100111
+// addi x13, x0, 13  # x13 = 13 (Skipped)
+//00000000110100000000001101001011
+// addi x12, x0, 12  # x12 = 12 (Target)
+//00000000110000000000001100010011
+
+// ===== FACTORIAL DEMO =====
+// Calculate factorial of 5 (5! = 120)
+// Uses: I-Type, R-Type, B-Type, J-Type instructions
+// Expected result: x2 = 120
+00000000010100000000000010010011
+00000000100000000000010100001111
+00000000000100000000000100010011
+00000000000000001000000110010011
+00000000000000011000101001100011
+00000010001100010000000100110011
+11111111111100011000000110010011
+11111111010111111111000001101111
+00000000000001010000000001100111
+
+// ===== CSR TEST DEMO =====
+// Test CSR read/write operations and interrupt detection
+// Expected: mstatus=0x8, mie=0x880, interrupt triggered when mip set
+
+// Instruction 0: addi x2, x0, 8      -> x2 = 0x8 (set mstatus.MIE bit3=1)
+//00000000100000000000000100010011
+
+// Instruction 1: csrrw x1, mstatus, x2  -> Write x2 to mstatus, old value -> x1
+// CSR addr=0x300 (001100000000), rs1=x2 (00010), funct3=001, rd=x1 (00001), opcode=1110011
+//00110000000000010001000011110011
+
+// Instruction 2: addi x4, x0, 0x880  -> x4 = 0x880 (MEIE=1 bit11, MTIE=1 bit7)
+// 0x880 = 100010000000 (12 bits)
+//10001000000000000000001000010011
+
+// Instruction 3: csrrw x3, mie, x4   -> Write x4 to mie, old value -> x3
+// CSR addr=0x304 (001100000100), rs1=x4 (00100), funct3=001, rd=x3 (00011), opcode=1110011
+//00110000010000100001000111110011
+
+// Instruction 4: addi x6, x0, 0x100  -> x6 = 0x100 (trap vector address)
+//00010000000000000000001100010011
+
+// Instruction 5: csrrw x0, mtvec, x6 -> Write x6 to mtvec (trap handler address)
+// CSR addr=0x305 (001100000101), rs1=x6 (00110), funct3=001, rd=x0 (00000), opcode=1110011
+//00110000010100110001000001110011
+
+// Instruction 6: csrrs x5, mepc, x0  -> Read mepc into x5 (CSRR pseudo-instruction)
+// CSR addr=0x341 (001101000001), rs1=x0 (00000), funct3=010, rd=x5 (00101), opcode=1110011
+//00110100000100000010001011110011
+
+// Instruction 7: csrrs x7, mstatus, x0 -> Read mstatus into x7 (should be 0x8)
+//00110000000000000010001111110011
+
+// Instruction 8: csrrs x8, mie, x0   -> Read mie into x8 (should be 0x880)
+//00110000010000000010010001110011
+
+// Instruction 9: addi x9, x0, 0x880  -> x9 = 0x880 (set MEIP=1, MTIP=1 pending bits)
+//10001000000000000000010010010011
+
+// Instruction 10: csrrw x0, mip, x9  -> Write x9 to mip (trigger interrupt detection)
+// CSR addr=0x344 (001101000100), rs1=x9 (01001), funct3=001, rd=x0 (00000), opcode=1110011
+//00110100010001001001000001110011
+
+// Instruction 11: nop (addi x0, x0, 0) -> Let interrupt logic settle
+//00000000000000000000000000010011
+
+// Instruction 12: csrrs x10, mcause, x0 -> Read mcause into x10 (should show interrupt code)
+//00110100001000000010010101110011
+
+// Instruction 13: csrrs x11, mepc, x0  -> Read mepc into x11 (should have saved PC)
+//00110100000100000010010111110011
+
+
+
